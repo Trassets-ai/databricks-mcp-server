@@ -269,3 +269,55 @@ async def submit_run(run_config: Dict[str, Any]) -> Dict[str, Any]:
     """
     logger.info("Submitting one-time run")
     return make_api_request("POST", "/api/2.0/jobs/runs/submit", data=run_config)
+
+
+async def reset_job(job_id: int, new_settings: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Overwrite all settings of a job with the provided settings.
+
+    Unlike update_job (partial patch), this replaces the entire job configuration.
+
+    Args:
+        job_id: ID of the job to reset
+        new_settings: Complete new job settings (name, tasks, schedule, etc.)
+
+    Returns:
+        Empty response on success
+
+    Raises:
+        DatabricksAPIError: If the API request fails
+    """
+    logger.info(f"Resetting job: {job_id}")
+    return make_api_request(
+        "POST", "/api/2.0/jobs/reset", data={"job_id": job_id, "new_settings": new_settings}
+    )
+
+
+async def repair_run(
+    run_id: int,
+    rerun_tasks: Optional[List[str]] = None,
+    latest_repair_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Re-run one or more failed or cancelled tasks of an existing run.
+
+    Args:
+        run_id: ID of the run to repair
+        rerun_tasks: Optional list of task keys to rerun. If omitted, all
+                     failed and cancelled tasks are rerun.
+        latest_repair_id: ID of the latest repair of the run. Required when
+                          issuing multiple consecutive repair requests.
+
+    Returns:
+        Response containing the repair_id of the new repair run.
+
+    Raises:
+        DatabricksAPIError: If the API request fails
+    """
+    logger.info(f"Repairing run: {run_id}")
+    data: Dict[str, Any] = {"run_id": run_id}
+    if rerun_tasks is not None:
+        data["rerun_tasks"] = rerun_tasks
+    if latest_repair_id is not None:
+        data["latest_repair_id"] = latest_repair_id
+    return make_api_request("POST", "/api/2.0/jobs/runs/repair", data=data)

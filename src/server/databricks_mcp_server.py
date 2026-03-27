@@ -14,7 +14,7 @@ from typing import Any, Dict, List
 
 from mcp.server import FastMCP
 
-from src.api import clusters, dbfs, jobs, notebooks, sql
+from src.api import clusters, dbfs, jobs, notebooks, shares, sql
 from src.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -250,6 +250,104 @@ class DatabricksMCPServer(FastMCP):
                     params.get("schema"),
                 ),
                 "executing SQL",
+            )
+
+        @self.tool(
+            name="reset_job",
+            description="Overwrite all settings of a Databricks job with parameters: job_id (required), new_settings (required dict with complete job configuration)",
+        )
+        async def reset_job(params: Dict[str, Any]) -> List[Dict[str, Any]]:
+            logger.info(f"Resetting job with params: {params}")
+            return await _run_tool(
+                jobs.reset_job(params.get("job_id"), params.get("new_settings", {})),
+                "resetting job",
+            )
+
+        @self.tool(
+            name="repair_run",
+            description="Re-run failed or cancelled tasks of a Databricks job run with parameters: run_id (required), rerun_tasks (optional list of task keys), latest_repair_id (optional int for chained repairs)",
+        )
+        async def repair_run(params: Dict[str, Any]) -> List[Dict[str, Any]]:
+            logger.info(f"Repairing run with params: {params}")
+            return await _run_tool(
+                jobs.repair_run(
+                    params.get("run_id"),
+                    rerun_tasks=params.get("rerun_tasks"),
+                    latest_repair_id=params.get("latest_repair_id"),
+                ),
+                "repairing run",
+            )
+
+        @self.tool(name="list_shares", description="List all Delta Sharing shares")
+        async def list_shares(params: Dict[str, Any]) -> List[Dict[str, Any]]:
+            logger.info("Listing shares")
+            return await _run_tool(shares.list_shares(), "listing shares")
+
+        @self.tool(
+            name="create_share",
+            description="Create a new Delta Sharing share with parameters: name (required), comment (optional)",
+        )
+        async def create_share(params: Dict[str, Any]) -> List[Dict[str, Any]]:
+            logger.info(f"Creating share with params: {params}")
+            return await _run_tool(
+                shares.create_share(params.get("name"), comment=params.get("comment")),
+                "creating share",
+            )
+
+        @self.tool(
+            name="get_share",
+            description="Get details of a Delta Sharing share with parameters: name (required), include_shared_data (optional bool, default false)",
+        )
+        async def get_share(params: Dict[str, Any]) -> List[Dict[str, Any]]:
+            logger.info(f"Getting share with params: {params}")
+            return await _run_tool(
+                shares.get_share(
+                    params.get("name"),
+                    include_shared_data=params.get("include_shared_data", False),
+                ),
+                "getting share",
+            )
+
+        @self.tool(
+            name="update_share",
+            description="Update a Delta Sharing share with parameters: name (required), updates (required dict, may contain new_name, comment, or updates list with ADD/REMOVE actions for shared objects)",
+        )
+        async def update_share(params: Dict[str, Any]) -> List[Dict[str, Any]]:
+            logger.info(f"Updating share with params: {params}")
+            return await _run_tool(
+                shares.update_share(params.get("name"), params.get("updates", {})),
+                "updating share",
+            )
+
+        @self.tool(
+            name="delete_share",
+            description="Delete a Delta Sharing share with parameter: name (required)",
+        )
+        async def delete_share(params: Dict[str, Any]) -> List[Dict[str, Any]]:
+            logger.info(f"Deleting share with params: {params}")
+            return await _run_tool(shares.delete_share(params.get("name")), "deleting share")
+
+        @self.tool(
+            name="get_share_permissions",
+            description="Get the permissions of a Delta Sharing share with parameter: name (required)",
+        )
+        async def get_share_permissions(params: Dict[str, Any]) -> List[Dict[str, Any]]:
+            logger.info(f"Getting share permissions with params: {params}")
+            return await _run_tool(
+                shares.get_share_permissions(params.get("name")), "getting share permissions"
+            )
+
+        @self.tool(
+            name="update_share_permissions",
+            description="Update permissions of a Delta Sharing share with parameters: name (required), changes (required list of {principal, add: [...], remove: [...]} objects)",
+        )
+        async def update_share_permissions(params: Dict[str, Any]) -> List[Dict[str, Any]]:
+            logger.info(f"Updating share permissions with params: {params}")
+            return await _run_tool(
+                shares.update_share_permissions(
+                    params.get("name"), params.get("changes", [])
+                ),
+                "updating share permissions",
             )
 
 

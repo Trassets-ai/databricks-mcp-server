@@ -4,7 +4,6 @@ API for managing Databricks File System (DBFS).
 
 import base64
 import logging
-import os
 from typing import Any, Dict, List, Optional, BinaryIO
 
 from src.core.utils import DatabricksAPIError, make_api_request
@@ -71,10 +70,7 @@ async def upload_large_file(
         FileNotFoundError: If the local file does not exist
     """
     logger.info(f"Uploading large file from {local_file_path} to DBFS path: {dbfs_path}")
-    
-    if not os.path.exists(local_file_path):
-        raise FileNotFoundError(f"Local file not found: {local_file_path}")
-    
+
     # Create a handle for the upload
     create_response = make_api_request(
         "POST",
@@ -87,50 +83,18 @@ async def upload_large_file(
     
     handle = create_response.get("handle")
     
-    try:
-        with open(local_file_path, "rb") as f:
-            chunk_index = 0
-            while True:
-                chunk = f.read(buffer_size)
-                if not chunk:
-                    break
-                    
-                # Convert chunk to base64
-                chunk_base64 = base64.b64encode(chunk).decode("utf-8")
-                
-                # Add to handle
-                make_api_request(
-                    "POST",
-                    "/api/2.0/dbfs/add-block",
-                    data={
-                        "handle": handle,
-                        "data": chunk_base64,
-                    },
-                )
-                
-                chunk_index += 1
-                logger.debug(f"Uploaded chunk {chunk_index}")
-        
-        # Close the handle
-        return make_api_request(
-            "POST",
-            "/api/2.0/dbfs/close",
-            data={"handle": handle},
-        )
-        
-    except Exception as e:
-        # Attempt to abort the upload on error
-        try:
+    with open(local_file_path, "rb") as f:
+        while True:
+            chunk = f.read(buffer_size)
+            if not chunk:
+                break
             make_api_request(
                 "POST",
-                "/api/2.0/dbfs/close",
-                data={"handle": handle},
+                "/api/2.0/dbfs/add-block",
+                data={"handle": handle, "data": base64.b64encode(chunk).decode("utf-8")},
             )
-        except Exception:
-            pass
-        
-        logger.error(f"Error uploading file: {str(e)}")
-        raise
+
+    return make_api_request("POST", "/api/2.0/dbfs/close", data={"handle": handle})
 
 
 async def get_file(

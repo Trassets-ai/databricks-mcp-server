@@ -2,7 +2,9 @@
 API for executing SQL statements on Databricks.
 """
 
+import asyncio
 import logging
+import time
 from typing import Any, Dict, List, Optional
 
 from src.core.utils import DatabricksAPIError, make_api_request
@@ -38,12 +40,12 @@ async def execute_statement(
     Raises:
         DatabricksAPIError: If the API request fails
     """
-    logger.info(f"Executing SQL statement: {statement[:100]}...")
+    logger.debug(f"Executing SQL statement: {statement[:100]}...")
     
     request_data = {
         "statement": statement,
         "warehouse_id": warehouse_id,
-        "wait_timeout": "0s",  # Wait indefinitely
+        "wait_timeout": "0s",  # Return immediately; caller polls for completion
         "row_limit": row_limit,
         "byte_limit": byte_limit,
     }
@@ -71,7 +73,7 @@ async def execute_and_wait(
 ) -> Dict[str, Any]:
     """
     Execute a SQL statement and wait for completion.
-    
+
     Args:
         statement: The SQL statement to execute
         warehouse_id: ID of the SQL warehouse to use
@@ -80,18 +82,15 @@ async def execute_and_wait(
         parameters: Optional statement parameters
         timeout_seconds: Maximum time to wait for completion
         poll_interval_seconds: How often to poll for status
-        
+
     Returns:
         Response containing query results
-        
+
     Raises:
         DatabricksAPIError: If the API request fails
         TimeoutError: If query execution times out
     """
-    import asyncio
-    import time
-    
-    logger.info(f"Executing SQL statement with waiting: {statement[:100]}...")
+    logger.debug(f"Executing SQL statement with waiting: {statement[:100]}...")
     
     # Start execution
     response = await execute_statement(
@@ -145,7 +144,7 @@ async def get_statement_status(statement_id: str) -> Dict[str, Any]:
         DatabricksAPIError: If the API request fails
     """
     logger.info(f"Getting status of SQL statement: {statement_id}")
-    return make_api_request("GET", f"/api/2.0/sql/statements/{statement_id}", params={})
+    return make_api_request("GET", f"/api/2.0/sql/statements/{statement_id}")
 
 
 async def cancel_statement(statement_id: str) -> Dict[str, Any]:
@@ -162,4 +161,4 @@ async def cancel_statement(statement_id: str) -> Dict[str, Any]:
         DatabricksAPIError: If the API request fails
     """
     logger.info(f"Cancelling SQL statement: {statement_id}")
-    return make_api_request("POST", f"/api/2.0/sql/statements/{statement_id}/cancel", data={}) 
+    return make_api_request("POST", f"/api/2.0/sql/statements/{statement_id}/cancel") 

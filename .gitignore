@@ -105,3 +105,8 @@ Thumbs.db
 # Claude Code
 .claude/
 CLAUDE.md
+
+# Cursor
+.cursor/
+.cursor.json
+.cursorrules

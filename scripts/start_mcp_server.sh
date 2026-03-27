@@ -10,15 +10,19 @@ fi
 # Activate the virtual environment
 source .venv/bin/activate
 
+# Load .env file if present and env vars are not already set
+if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
+    if [ -f ".env" ]; then
+        set -a
+        source .env
+        set +a
+    fi
+fi
+
 # Check if environment variables are set
 if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
     echo "Warning: DATABRICKS_HOST and/or DATABRICKS_TOKEN environment variables are not set."
-    echo "You can set them now or the server will look for them in other sources."
-    read -p "Do you want to continue? (y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
+    echo "The server will attempt to load them from other sources (.env, config, etc.)."
 fi
 
 # Start the server by running the module directly
@@ -27,6 +31,6 @@ if [ -n "$DATABRICKS_HOST" ]; then
     echo "Databricks Host: $DATABRICKS_HOST"
 fi
 
-uv run src.server.databricks_mcp_server
+uv run -m src.server.databricks_mcp_server
 
 echo "Server stopped at $(date)" 

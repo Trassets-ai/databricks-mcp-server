@@ -100,4 +100,8 @@ ehthumbs.db
 Thumbs.db
 
 # Log files
-*.log 
+*.log
+
+# Claude Code
+.claude/
+CLAUDE.md

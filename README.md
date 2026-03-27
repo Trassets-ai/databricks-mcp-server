@@ -13,17 +13,37 @@ A Model Completion Protocol (MCP) server for Databricks that provides access to 
 
 The Databricks MCP Server exposes the following tools:
 
+**Clusters**
 - **list_clusters**: List all Databricks clusters
 - **create_cluster**: Create a new Databricks cluster
-- **terminate_cluster**: Terminate a Databricks cluster
-- **get_cluster**: Get information about a specific Databricks cluster
-- **start_cluster**: Start a terminated Databricks cluster
+- **get_cluster**: Get information about a specific cluster
+- **start_cluster**: Start a terminated cluster
+- **terminate_cluster**: Terminate a cluster
+
+**Jobs**
 - **list_jobs**: List all Databricks jobs
-- **run_job**: Run a Databricks job
+- **create_job**: Create a new job
+- **get_job**: Get details of a job
+- **update_job**: Partially update a job
+- **delete_job**: Delete a job
+- **run_job**: Trigger a job run
+- **submit_run**: Submit a one-time run without creating a persistent job
+
+**Runs**
+- **list_runs**: List job runs (filterable by job, active-only)
+- **get_run**: Get metadata and status of a run
+- **get_run_output**: Get the output of a completed run (up to 5MB)
+- **cancel_run**: Cancel an active run
+- **cancel_all_runs**: Cancel all active runs of a job
+- **delete_run**: Delete a completed run
+
+**Notebooks & DBFS**
 - **list_notebooks**: List notebooks in a workspace directory
 - **export_notebook**: Export a notebook from the workspace
 - **list_files**: List files and directories in a DBFS path
-- **execute_sql**: Execute a SQL statement
+
+**SQL**
+- **execute_sql**: Execute a SQL statement on a Databricks SQL warehouse
 
 ## Installation
 
@@ -48,7 +68,7 @@ The Databricks MCP Server exposes the following tools:
 
 2. Clone the repository:
    ```bash
-   git clone https://github.com/JustTryAI/databricks-mcp-server.git
+   git clone https://github.com/Trassets-ai/databricks-mcp-server.git
    cd databricks-mcp-server
    ```
 
@@ -82,6 +102,41 @@ The Databricks MCP Server exposes the following tools:
    ```
 
    You can also create an `.env` file based on the `.env.example` template.
+
+## Connecting to Claude Code
+
+To use this server directly in Claude Code, register it as a local MCP server:
+
+```bash
+claude mcp add databricks-mcp \
+  -e DATABRICKS_HOST=https://your-instance.azuredatabricks.net \
+  -e DATABRICKS_TOKEN=your-personal-access-token \
+  -- uv run --directory /path/to/databricks-mcp-server -m src.main
+```
+
+Verify the server is registered:
+```bash
+claude mcp list
+```
+
+Alternatively, add it manually to `~/.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "databricks-mcp": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/databricks-mcp-server", "-m", "src.main"],
+      "env": {
+        "DATABRICKS_HOST": "https://your-instance.azuredatabricks.net",
+        "DATABRICKS_TOKEN": "your-personal-access-token"
+      }
+    }
+  }
+}
+```
+
+Once registered, Claude Code will start the server automatically and you can interact with your Databricks workspace directly in the chat.
 
 ## Running the MCP Server
 

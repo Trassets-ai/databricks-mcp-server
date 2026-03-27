@@ -2,42 +2,30 @@
 Configuration settings for the Databricks MCP server.
 """
 
-import os
-from typing import Any, Dict, Optional
+import warnings
+from typing import Dict
 
-# Import dotenv if available, but don't require it
 try:
     from dotenv import load_dotenv
-    # Load .env file if it exists
     load_dotenv()
-    print("Successfully loaded dotenv")
 except ImportError:
-    print("WARNING: python-dotenv not found, environment variables must be set manually")
-    # We'll just rely on OS environment variables being set manually
+    warnings.warn("python-dotenv not found, environment variables must be set manually")
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Version
 VERSION = "0.1.0"
 
 
 class Settings(BaseSettings):
     """Base settings for the application."""
 
-    # Databricks API configuration
-    DATABRICKS_HOST: str = os.environ.get("DATABRICKS_HOST", "https://example.databricks.net")
-    DATABRICKS_TOKEN: str = os.environ.get("DATABRICKS_TOKEN", "dapi_token_placeholder")
-
-    # Server configuration
-    SERVER_HOST: str = os.environ.get("SERVER_HOST", "0.0.0.0") 
-    SERVER_PORT: int = int(os.environ.get("SERVER_PORT", "8000"))
-    DEBUG: bool = os.environ.get("DEBUG", "False").lower() == "true"
-
-    # Logging
-    LOG_LEVEL: str = os.environ.get("LOG_LEVEL", "INFO")
-    
-    # Version
+    DATABRICKS_HOST: str = "https://example.databricks.net"
+    DATABRICKS_TOKEN: str = "dapi_token_placeholder"
+    SERVER_HOST: str = "0.0.0.0"
+    SERVER_PORT: int = 8000
+    DEBUG: bool = False
+    LOG_LEVEL: str = "INFO"
     VERSION: str = VERSION
 
     @field_validator("DATABRICKS_HOST")
@@ -47,11 +35,7 @@ class Settings(BaseSettings):
             raise ValueError("DATABRICKS_HOST must start with http:// or https://")
         return v
 
-    class Config:
-        """Pydantic configuration."""
-
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
 
 # Create global settings instance

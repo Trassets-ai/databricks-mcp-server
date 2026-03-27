@@ -2,7 +2,6 @@
 Utility functions for the Databricks MCP server.
 """
 
-import json
 import logging
 from typing import Any, Dict, List, Optional, Union
 
@@ -11,11 +10,6 @@ from requests.exceptions import RequestException
 
 from src.core.config import get_api_headers, get_databricks_api_url
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
 logger = logging.getLogger(__name__)
 
 
@@ -56,37 +50,28 @@ def make_api_request(
     headers = get_api_headers()
     
     try:
-        # Log the request (omit sensitive information)
-        safe_data = "**REDACTED**" if data else None
-        logger.debug(f"API Request: {method} {url} Params: {params} Data: {safe_data}")
-        
-        # Convert data to JSON string if provided
-        json_data = json.dumps(data) if data and not files else data
-        
-        # Make the request
+        logger.debug(f"API Request: {method} {url} Params: {params} Data: {'**REDACTED**' if data else None}")
+
         response = requests.request(
             method=method,
             url=url,
             headers=headers,
             params=params,
-            data=json_data if not files else data,
+            json=data if not files else None,
+            data=data if files else None,
             files=files,
         )
-        
-        # Check for HTTP errors
+
         response.raise_for_status()
-        
-        # Parse response
+
         if response.content:
             return response.json()
         return {}
-        
+
     except RequestException as e:
-        # Handle request exceptions
         status_code = getattr(e.response, "status_code", None) if hasattr(e, "response") else None
         error_msg = f"API request failed: {str(e)}"
-        
-        # Try to extract error details from response
+
         error_response = None
         if hasattr(e, "response") and e.response is not None:
             try:
@@ -94,11 +79,8 @@ def make_api_request(
                 error_msg = f"{error_msg} - {error_response.get('error', '')}"
             except ValueError:
                 error_response = e.response.text
-        
-        # Log the error
+
         logger.error(f"API Error: {error_msg}", exc_info=True)
-        
-        # Raise custom exception
         raise DatabricksAPIError(error_msg, status_code, error_response) from e
 
 

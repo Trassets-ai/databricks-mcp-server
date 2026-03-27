@@ -38,10 +38,6 @@ def setup_logging(log_level: Optional[str] = None):
 
 async def main():
     """Main entry point."""
-    # Set up logging
-    setup_logging()
-    
-    # Log startup information
     logger = logging.getLogger(__name__)
     logger.info(f"Starting Databricks MCP server v{settings.VERSION}")
     logger.info(f"Databricks host: {settings.DATABRICKS_HOST}")

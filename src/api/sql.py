@@ -20,7 +20,7 @@ async def execute_statement(
     schema: Optional[str] = None,
     parameters: Optional[Dict[str, Any]] = None,
     row_limit: int = 10000,
-    byte_limit: int = 100000000,  # 100MB
+    byte_limit: int = 26214400,  # 25 MiB — API-Maximum für byte_limit
 ) -> Dict[str, Any]:
     """
     Execute a SQL statement.
@@ -59,7 +59,7 @@ async def execute_statement(
     if parameters:
         request_data["parameters"] = parameters
         
-    return make_api_request("POST", "/api/2.0/sql/statements/execute", data=request_data)
+    return make_api_request("POST", "/api/2.0/sql/statements", data=request_data)
 
 
 async def execute_and_wait(

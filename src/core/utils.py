@@ -76,7 +76,9 @@ def make_api_request(
         if hasattr(e, "response") and e.response is not None:
             try:
                 error_response = e.response.json()
-                error_msg = f"{error_msg} - {error_response.get('error', '')}"
+                # Databricks liefert "message"; "error" ist der Fallback anderer Endpoints
+                detail = error_response.get("message") or error_response.get("error", "")
+                error_msg = f"{error_msg} - {detail}"
             except ValueError:
                 error_response = e.response.text
 

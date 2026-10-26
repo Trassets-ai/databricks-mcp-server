@@ -2,10 +2,14 @@
 Configuration settings for the Databricks MCP server.
 """
 
+import configparser
 import json
+import os
 import subprocess
 import warnings
 from typing import Dict
+
+import requests
 
 try:
     from dotenv import load_dotenv
@@ -46,7 +50,8 @@ settings = Settings()
 
 
 def get_bearer_token() -> str:
-    """Get a bearer token: DATABRICKS_TOKEN if set, else a CLI OAuth token.
+    """Get a bearer token: DATABRICKS_TOKEN if set, else a Service-Principal token
+    if the profile has client_id/client_secret, else a CLI OAuth token.
 
     ponytail: shells out to the CLI instead of using the SDK, because the SDK
     calls `databricks auth token --host ...`, which the CLI's secure keyring
@@ -55,6 +60,21 @@ def get_bearer_token() -> str:
     """
     if settings.DATABRICKS_TOKEN:
         return settings.DATABRICKS_TOKEN
+
+    # Service Principal (Profil mit client_id/client_secret): `databricks auth token` kann kein M2M.
+    # ponytail: kein Token-Cache, jeder API-Aufruf holt ein neues 1-h-Token; Cache, falls das bremst
+    cfg = configparser.RawConfigParser()
+    cfg.read(os.path.expanduser("~/.databrickscfg"))
+    if cfg.has_option(settings.DATABRICKS_PROFILE, "client_secret"):
+        p = cfg[settings.DATABRICKS_PROFILE]
+        resp = requests.post(
+            p["host"].rstrip("/") + "/oidc/v1/token",
+            data={"grant_type": "client_credentials", "scope": "all-apis"},
+            auth=(p["client_id"], p["client_secret"]),
+            timeout=30,
+        )
+        resp.raise_for_status()
+        return resp.json()["access_token"]
 
     result = subprocess.run(
         ["databricks", "auth", "token", "--profile", settings.DATABRICKS_PROFILE],

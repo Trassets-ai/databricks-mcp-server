@@ -35,6 +35,18 @@ def test_service_principal_profile_uses_client_credentials(tmp_path):
     run.assert_not_called()
 
 
+def test_service_principal_reads_databricks_config_file(tmp_path, monkeypatch):
+    cfg = tmp_path / "bedrock.cfg"
+    cfg.write_text("[claude]\nhost = https://y.cloud.databricks.com\nclient_id = cid2\nclient_secret = sec2\n")
+    monkeypatch.setenv("DATABRICKS_CONFIG_FILE", str(cfg))
+    resp = type("R", (), {"raise_for_status": lambda self: None, "json": lambda self: {"access_token": "sp_tok2"}})()
+    with patch.object(config.settings, "DATABRICKS_TOKEN", ""), \
+         patch.object(config.settings, "DATABRICKS_PROFILE", "claude"), \
+         patch.object(config.requests, "post", return_value=resp) as post:
+        assert config.get_bearer_token() == "sp_tok2"
+    assert post.call_args[1]["auth"] == ("cid2", "sec2")
+
+
 def test_raises_with_hint_when_cli_fails():
     completed = type("R", (), {"returncode": 1, "stdout": "", "stderr": "not logged in"})
     with patch.object(config.settings, "DATABRICKS_TOKEN", ""):

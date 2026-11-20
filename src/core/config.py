@@ -64,7 +64,7 @@ def get_bearer_token() -> str:
     # Service Principal (Profil mit client_id/client_secret): `databricks auth token` kann kein M2M.
     # ponytail: kein Token-Cache, jeder API-Aufruf holt ein neues 1-h-Token; Cache, falls das bremst
     cfg = configparser.RawConfigParser()
-    cfg.read(os.path.expanduser("~/.databrickscfg"))
+    cfg.read(os.path.expanduser(os.environ.get("DATABRICKS_CONFIG_FILE") or "~/.databrickscfg"))
     if cfg.has_option(settings.DATABRICKS_PROFILE, "client_secret"):
         p = cfg[settings.DATABRICKS_PROFILE]
         resp = requests.post(
